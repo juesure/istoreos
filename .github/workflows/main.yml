@@ -37,7 +37,7 @@ jobs:
 
     - name: Clone source code
       run: |
-        git clone -b AX6_256M_V1.0 https://github.com/juesure/immortalwrt.git openwrt
+        git clone -b AX6_256M_V1.0 https://github.com/juesure/istoreos.git openwrt
         cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
