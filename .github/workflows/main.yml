@@ -1,0 +1,77 @@
+name: Build OpenWrt
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Switch apt mirror (Tsinghua)
+      run: |
+        sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu/|https://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list
+        sudo apt-get update
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        TZ: UTC
+      run: |
+        sudo -E apt-get update
+        sudo -E apt-get -y --no-install-recommends install \
+          build-essential asciidoc binutils bzip2 gawk gettext git \
+          libncurses5-dev libz-dev patch unzip zlib1g-dev lib32gcc-s1 \
+          libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib \
+          p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto \
+          qemu-utils upx libelf-dev autoconf automake libtool autopoint \
+          device-tree-compiler g++-multilib antlr3 gperf wget curl swig rsync
+
+    - name: Clone source code
+      run: |
+        git clone -b AX6_256M_V1.0 https://github.com/juesure/istoreos.git openwrt
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Load custom configuration
+      run: |
+        [ -e .config ] && cp .config openwrt/.config
+        cd openwrt
+        make defconfig
+
+    - name: SSH connection to Actions
+      uses: P3TERX/ssh2actions@v1.0.0
+      if: github.event.inputs.ssh == 'true'
+      with:
+        args: ${{ secrets.SSH2ACTIONS }}
+
+    - name: Download package
+      run: |
+        cd openwrt
+        make download -j8
+
+    - name: Compile the firmware
+      run: |
+        cd openwrt
+        make -j$(nproc) || make -j1 V=s
+
+    - name: Organize files
+      run: |
+        cd openwrt/bin/targets/
+        mkdir -p ../../../artifact/
+        cp -rf $(find ./ -type f -name "*-squashfs-*" -o -name "*-ext4-*" -o -name "*-factory-*" -o -name "*-initramfs-*") ../../../artifact/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenWrt_firmware
+        path: artifact/
