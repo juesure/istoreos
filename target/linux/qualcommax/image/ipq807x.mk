@@ -363,11 +363,29 @@ define Device/qnap_301w
 endef
 TARGET_DEVICES += qnap_301w
 
-define Device/redmi_ax6
-	$(call Device/xiaomi_ax3600)
-	DEVICE_VENDOR := Redmi
-	DEVICE_MODEL := AX6
-	DEVICE_PACKAGES := ipq-wifi-redmi_ax6
+efine Device/redmi_ax6
+    $(call Device/xiaomi_ax3600)
+    DEVICE_VENDOR := Redmi
+    DEVICE_MODEL := AX6
+    DEVICE_PACKAGES := ipq-wifi-redmi_ax6
+
+    # === 核心修复：使用十进制数值，避免 Python 脚本转换错误 ===
+    PAGESIZE := 2048
+    BLOCKSIZE := 131072          # 128 KiB 的十进制表示
+    SUBPAGESIZE := 2048          # 与 PAGESIZE 相同（NAND 子页大小）
+    UBI_OPTS := -m $(PAGESIZE) -p $(BLOCKSIZE) -s $(SUBPAGESIZE)
+
+    # 明确根文件系统大小（根据实际 NAND 布局调整，此处为 240 MiB）
+    ROOTFS_SIZE := 251658240     # 240 * 1024 * 1024
+    IMAGE_SIZE := 268435456      # 256 MiB，整个 rootfs 分区大小
+
+    # === 强制使用 append-ubi 规则，确保 rootfs_data 带 autoresize ===
+    # 覆盖从 xiaomi_ax3600 继承的镜像生成规则
+    IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
+    IMAGE/sysupgrade.bin := append-ubi | sysupgrade-tar rootfs=$$$$@ | check-size $$$$(IMAGE_SIZE)
+
+    # 可选：清理可能导致依赖问题的包
+    DEVICE_PACKAGES += -fwupd -fwupd-libs
 endef
 TARGET_DEVICES += redmi_ax6
 
