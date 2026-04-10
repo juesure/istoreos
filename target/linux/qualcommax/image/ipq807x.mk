@@ -363,7 +363,7 @@ define Device/qnap_301w
 endef
 TARGET_DEVICES += qnap_301w
 
-efine Device/redmi_ax6
+define Device/redmi_ax6
     $(call Device/xiaomi_ax3600)
     DEVICE_VENDOR := Redmi
     DEVICE_MODEL := AX6
