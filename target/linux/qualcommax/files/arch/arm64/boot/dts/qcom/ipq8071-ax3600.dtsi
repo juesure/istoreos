@@ -190,9 +190,9 @@
 			};
 
 			/* Make the first rootfs a dedicated ubi partition for kernel */
-			partition@a00000 {
-				label = "rootfs";
-				reg = <0x00a00000 0x06640000>;
+			rootfs: partition@a00000 {
+			    label = "rootfs";
+			    reg = <0x00a00000 0x06640000>;
 			};
 			partition@7040000 {
 				label = "rsvd0";
